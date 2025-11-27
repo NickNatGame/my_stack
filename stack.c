@@ -1,74 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-
-typedef enum {
-    STACK_OK = 0,
-    STACK_NULL_PTR = 1 << 0,
-    STACK_OVERFLOW = 1 << 1,
-    STACK_UNDERFLOW = 1 << 2,
-    STACK_MEMORY_ERR = 1 << 3,
-    STACK_CORRUPTED = 1 << 4
-} stack_error;
-typedef unsigned long ul;
-
-struct stack{
-    int *pointer;
-    int count_idx;
-    int capasity;
-    ul hash;
-    stack_error error;
-};
-typedef struct stack my_stack;
+#include <stdbool.h>
+#include <string.h>
+#include "stack.h"
 
 #define SOFT_ASSERT_STACK(cond, err_code, stack) \
     do { \
-        if ((cond)) { \
-            stack->error |= (err_code); \                                                              
+        if (!(cond)) { \
+            stack->error |= (err_code); \
         } \
     } while (0)
 
-#define SOFT_ASSERT(cond, ret)                                                                     \
-    do {                                                                                           \
-        if (!(cond)) {                                                                             \
-            fprintf(stderr, "\nError: condition `%s` failed\n", #cond);                            \
-            return (ret);                                                                          \
-        }                                                                                          \
-    } while (0)
+const unsigned int CANARY = 0xDEADBEEF;
+const int init_capacity = 1;
+const int mult = 2;
+static void write_canaries(my_stack *stack);
+static bool check_canaries(my_stack *stack);
 
-const int CANARY = 0xDEADBEEF;
-const int init_capacity = 2;
-enum errors_input{INPUT_OK = 0, INPUT_ERR = 1};
-
-void stack_initialize(my_stack *stack);
-void push(my_stack *stack, int num);
-void pop(my_stack *stack);
-void stack_resize(my_stack *arr);
-void dump(my_stack *stack);
-ul hash_create(my_stack *stack);
-void stack_errs(my_stack *stack);
-
-int main(){ 
-    int choice = 0;
-    int num = 0;
-    my_stack stack;
-    stack_initialize(&stack);
-    
-    while(choice != 3){
-        printf("Choose:\n push: [1]\n pop: [2]\n");
-        scanf("%d",&choice);
-        if(choice == 1){
-            printf("Write number ");
-            SOFT_ASSERT(scanf("%d", &num) == 1, INPUT_ERR);
-            push(&stack, num);
-        }
-        else{
-            pop(&stack);
-        }
-        dump(&stack);
-    }
-    return 0;
-}
 
 ul hash_create(my_stack *stack){
     ul hash = 0x16032007;
@@ -82,54 +30,83 @@ ul hash_create(my_stack *stack){
     return hash;
 }
 
-void stack_initialize(my_stack *stack){ 
-    SOFT_ASSERT_STACK(stack == NULL, STACK_NULL_PTR, stack);
+static void write_canaries(my_stack *stack){
+    memcpy((char*)stack->block, &CANARY, sizeof(CANARY));
+    memcpy((char*)stack->block + sizeof(CANARY) + stack->capasity * sizeof(int), &CANARY, sizeof(CANARY));
+}
 
-    stack->pointer = (int *)calloc(init_capacity, sizeof(int));
+static bool check_canaries(my_stack *stack){
+    ul left_can = 0;
+    ul right_can = 0;
 
-    SOFT_ASSERT_STACK(stack->pointer == NULL, STACK_MEMORY_ERR, stack);
+    memcpy(&left_can, (char*)stack->block, sizeof(CANARY));
+    memcpy(&right_can, (char*)stack->block + stack->capasity * sizeof(int) + sizeof(CANARY), sizeof(CANARY));
 
+    return (left_can == CANARY && right_can == CANARY);
+}
+
+void stack_initialize(my_stack *stack){
+    int total_bytes = 0;
+    void *n_block = NULL;
     stack->capasity = init_capacity;
+    stack->error = STACK_OK;
     stack->count_idx = -1; 
+
+    total_bytes = sizeof(CANARY) + stack->capasity * sizeof(int) + sizeof(CANARY);
+    n_block = calloc(init_capacity, total_bytes);
+
+    stack->block = n_block;
+    stack->pointer = (int*)((char*)n_block + sizeof(CANARY)); 
+    SOFT_ASSERT_STACK(stack->pointer != NULL, STACK_MEMORY_ERR, stack);
+
+    write_canaries(stack);
     stack->hash = hash_create(stack);
-    /*
-    add canary on the start and end of the dinamic memory
-    */
 }
 
 void stack_resize(my_stack *stack){
-    SOFT_ASSERT_STACK(stack == NULL, STACK_NULL_PTR, stack);
-    stack->capasity += 1;
-    stack->pointer = (int *)realloc(stack->pointer, stack->capasity * sizeof(int) + 2 * sizeof(CANARY));
-    SOFT_ASSERT_STACK(stack->pointer == NULL, STACK_MEMORY_ERR, stack);
-    /*
-    add canary on the start and end of the dinamic memory (?) and mb redo with calloc + memcpy
-    */
+    SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+    int new_total_bytes = 0;
+    void *new_n_block = NULL;
+
+    stack->capasity *= mult;
+    new_total_bytes = sizeof(CANARY) + stack->capasity * sizeof(int) + sizeof(CANARY);
+    new_n_block = realloc((char*)stack->block, new_total_bytes);
+    if(new_n_block == NULL){
+        stack-> error |= STACK_MEMORY_ERR;
+    }
+
+    stack->block = new_n_block;
+    stack->pointer = (int *)((char*) new_n_block + sizeof(CANARY));
+
+    SOFT_ASSERT_STACK(stack->pointer != NULL, STACK_MEMORY_ERR, stack);
+
+    write_canaries(stack);
 }
 
 void push(my_stack *stack, int num){
-    SOFT_ASSERT_STACK(stack == NULL, STACK_NULL_PTR, stack);
+    SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
 
     stack->count_idx += 1;
     if(stack->count_idx >= stack->capasity) {
         stack_resize(stack);
 
-        SOFT_ASSERT_STACK(stack->error == STACK_OK ? 1 : 0, STACK_CORRUPTED, stack);
+        SOFT_ASSERT_STACK(stack->error != STACK_OK ? 0 : 1, STACK_CORRUPTED, stack);
     }
     stack->pointer[stack->count_idx] = num;
     stack->hash = hash_create(stack);
-    //add check of the canaries and hesh and if false - failure to dump
+    write_canaries(stack);
 }
-void pop(my_stack *stack){
-    SOFT_ASSERT_STACK(stack == NULL, STACK_NULL_PTR, stack);
 
-    SOFT_ASSERT_STACK(stack->count_idx == -1, STACK_UNDERFLOW, stack);
+void pop(my_stack *stack){
+    SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+
+    SOFT_ASSERT_STACK(stack->count_idx >= 0, STACK_UNDERFLOW, stack);
 
     if(stack->count_idx > -1){
         stack->count_idx -= 1;
     }
     stack->hash = hash_create(stack);
-    //add check of the canaries and hesh and if false - failure to dump
+    write_canaries(stack);
 }
 
 void stack_errs(my_stack *stack){
@@ -154,6 +131,8 @@ void stack_errs(my_stack *stack){
     if(stack->error & STACK_CORRUPTED){
         printf("Smth wrong with your stack...\n");
     }
+
+    stack->error = STACK_OK;
 }
 
 #ifdef LOG_LEVEL_FULL
@@ -165,7 +144,13 @@ void dump(my_stack *stack){
     }
     printf("Capacity: %d\n", stack->capasity);
     printf("Hash: %lu\nCheck: %lu\n\n", stack->hash, hash_create(stack));
-
+    if(check_canaries(stack)){
+        printf("All fine with canaries\n");
+    }
+    else{
+        printf("Canaries check fail - memory corrupted\n");
+        stack->error |= STACK_CORRUPTED;
+    }
     stack_errs(stack);
 }
 
