@@ -32,6 +32,7 @@ int main(){
     }
 
     free(stack.block);
+    stack.block = NULL;
     stack.pointer = NULL;
     return 0;
 }

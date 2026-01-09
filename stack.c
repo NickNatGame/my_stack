@@ -11,18 +11,16 @@
         } \
     } while (0)
 
-const unsigned int CANARY = 0xDEADBEEF;
-const int init_capacity = 1;
-const int mult = 2;
+static const unsigned int CANARY = 0xDEADBEEF;
+static const int mult = 2;
 static void write_canaries(my_stack *stack);
-static bool check_canaries(my_stack *stack);
 
 
 ul hash_create(my_stack *stack){
     ul hash = 0x16032007;
     ul hash_prime = 0x01000193;
     for(int elem = 0; elem <= stack->count_idx; elem++){
-        for(int i = 0; i < sizeof(int)*8;i++){
+        for(int i = 0; i < (int)sizeof(int)*8;i++){
             hash ^= (stack->pointer[elem] >> i) & 1;
             hash *= hash_prime;
         }
@@ -35,7 +33,7 @@ static void write_canaries(my_stack *stack){
     memcpy((char*)stack->block + sizeof(CANARY) + stack->capasity * sizeof(int), &CANARY, sizeof(CANARY));
 }
 
-static bool check_canaries(my_stack *stack){
+int check_canaries(my_stack *stack){
     ul left_can = 0;
     ul right_can = 0;
 
@@ -48,12 +46,12 @@ static bool check_canaries(my_stack *stack){
 void stack_initialize(my_stack *stack){
     int total_bytes = 0;
     void *n_block = NULL;
-    stack->capasity = init_capacity;
+    stack->capasity = 1;
     stack->error = STACK_OK;
     stack->count_idx = -1; 
 
     total_bytes = sizeof(CANARY) + stack->capasity * sizeof(int) + sizeof(CANARY);
-    n_block = calloc(init_capacity, total_bytes);
+    n_block = calloc(1, total_bytes);
 
     stack->block = n_block;
     stack->pointer = (int*)((char*)n_block + sizeof(CANARY)); 

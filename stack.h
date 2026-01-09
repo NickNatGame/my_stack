@@ -28,5 +28,5 @@ void stack_resize(my_stack *arr);
 void dump(my_stack *stack);
 ul hash_create(my_stack *stack);
 void stack_errs(my_stack *stack);
-
+int check_canaries(my_stack *stack);
 #endif
