@@ -103,14 +103,14 @@ static void test_many_pushes_and_pops(void) {
     stack_initialize(&stack);
 
     const int N = 100;
-    unsigned long capas = 1;
+    int capas_real = 1;
     for (int i = 0; i < N; i++) {
+        if (i == capas_real) capas_real *= 2;
         push(&stack, i);
-        capas *= 2;
     }
 
     SOFT_ASSERT_EQ_ERR(stack.count_idx, N - 1);
-    //SOFT_ASSERT_EQ_ERR(stack.capasity, capas);
+    SOFT_ASSERT_EQ_ERR(stack.capasity, capas_real);
 
     SOFT_ASSERT_EQ_ERR(stack.pointer[0], 0);   /* |                 */
     SOFT_ASSERT_EQ_ERR(stack.pointer[50], 50); /* | can be changed  */

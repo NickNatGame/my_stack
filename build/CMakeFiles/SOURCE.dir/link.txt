@@ -1,0 +1,1 @@
+/usr/bin/cc    CMakeFiles/SOURCE.dir/src/main.c.o CMakeFiles/SOURCE.dir/src/stack.c.o  -o SOURCE 

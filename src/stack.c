@@ -164,7 +164,7 @@ int dump(my_stack *stack){
 }
 
 #elif LOG_LEVEL_NONE
-void dump() {
+void dump(my_stack *stack) {
     printf("Last element: stack[%d] %d\n", stack->count_idx, stack->pointer[stack->count_idx]); 
     printf("All elements: \n");
     for(int i = stack->count_idx; i >= 0; i--){

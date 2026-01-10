@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "stack.h"
+#include <stack.h>
 
 #define SOFT_ASSERT(cond, ret)                                                                     \
     do {                                                                                           \
@@ -9,6 +9,7 @@
             return (ret);                                                                          \
         }                                                                                          \
     } while (0)
+
 enum errors_input{INPUT_OK = 0, INPUT_ERR = 1};
 
 int main(){

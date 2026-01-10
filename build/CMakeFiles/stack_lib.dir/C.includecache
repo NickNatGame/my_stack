@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/my_stack/src/stack.c
+stdio.h
+-
+stdlib.h
+-
+stdbool.h
+-
+string.h
+-
+stack.h
+/home/my_stack/src/stack.h
+
