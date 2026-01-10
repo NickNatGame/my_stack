@@ -1,3 +1,0 @@
-/home/my_stack/build/CMakeFiles/rebuild_cache.dir
-/home/my_stack/build/CMakeFiles/edit_cache.dir
-/home/my_stack/build/CMakeFiles/stack.dir
