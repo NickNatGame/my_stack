@@ -8,8 +8,8 @@ Installation:
 git clone NickNatGame/my_stack
 ```
 Build using Cmake:
-
-````cmake -S . -B build # only first time for configuration
+````
+cmake -S . -B build # only first time for configuration
 cmake --build build # do this each time you need to build
 ````
 ## Run
