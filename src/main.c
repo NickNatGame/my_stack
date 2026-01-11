@@ -10,8 +10,6 @@
         }                                                                                          \
     } while (0)
 
-enum errors_input{INPUT_OK = 0, INPUT_ERR = 1};
-
 int main(){
     int choice = 0;
     int num = 0;
@@ -23,7 +21,7 @@ int main(){
         scanf("%d",&choice);
         if(choice == 1){
             printf("Write number ");
-            SOFT_ASSERT(scanf("%d", &num) == 1, INPUT_ERR);
+            SOFT_ASSERT(scanf("%d", &num) == 1, EXIT_FAILURE);
             push(&stack, num);
         }
         else{
