@@ -1,9 +1,10 @@
 #include "stack.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h> // FIXME: I believe, that stdlib already includes all the other headers
 #include <string.h>
 
+// FIXME: Read comm in main.c about defines
 #define SOFT_ASSERT_STACK(cond, err_code, stack)                               \
   do {                                                                         \
     if (!(cond)) {                                                             \
@@ -33,7 +34,9 @@ UL hash_create(my_stack *stack) {
   return hash;
 }
 
-static void write_canaries(my_stack *stack) {
+static void
+write_canaries(my_stack *stack) { // FIXME: [CRITICAL]: Use assert on poiters
+                                  // everywhere, we dont have incapsulation in C
   memcpy((char *)stack->block, &CANARY, sizeof(CANARY));
   memcpy((char *)stack->block + sizeof(CANARY) + stack->capasity * sizeof(int),
          &CANARY, sizeof(CANARY));
@@ -43,6 +46,8 @@ int check_canaries(my_stack *stack) {
   UL left_can = 0;
   UL right_can = 0;
 
+  // FIXME: Why do you need to copy them? Why cant you just cast it to pointer
+  // to unsigned long and check?
   memcpy(&left_can, (char *)stack->block, sizeof(CANARY));
   memcpy(&right_can,
          (char *)stack->block + stack->capasity * sizeof(int) + sizeof(CANARY),
@@ -54,21 +59,30 @@ int check_canaries(my_stack *stack) {
 void stack_initialize(my_stack *stack) {
   int total_bytes = 0;
   void *n_block = NULL;
-  stack->capasity = 1;
+  stack->capasity = 1; // FIXME: its capacity, not capasity
   stack->error = STACK_OK;
-  stack->count_idx = -1;
+  stack->count_idx = -1; // FIXME: its usually called size, and it should be
+                         // positive (or zero) value with current size of stack
 
   total_bytes = sizeof(CANARY) + stack->capasity * sizeof(int) + sizeof(CANARY);
   n_block = calloc(1, total_bytes);
 
   stack->block = n_block;
+
   stack->pointer = (int *)((char *)n_block + sizeof(CANARY));
+
+  // FIXME: It cant be NULL here if you got correct calloc several lines above
+  // BUT if you didnt get a correct calloc, this check will NOT save you,
+  // you will still get an error in `write_canaries`, as you dereference a
+  // NULL-pointer there
   SOFT_ASSERT_STACK(stack->pointer != NULL, STACK_MEMORY_ERR, stack);
 
   write_canaries(stack);
   stack->hash = hash_create(stack);
 }
 
+// FIXME: what if I add 1000000 element to you stack, and then pop all of them
+// except one? Consider resize-down
 void stack_resize(my_stack *stack) {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
   int new_total_bytes = 0;
@@ -78,7 +92,7 @@ void stack_resize(my_stack *stack) {
   new_total_bytes =
       sizeof(CANARY) + stack->capasity * sizeof(int) + sizeof(CANARY);
   new_n_block = realloc((char *)stack->block, new_total_bytes);
-  if (new_n_block == NULL) {
+  if (new_n_block == NULL) { // FIXME: WHy dont you use your own defines here
     stack->error |= STACK_MEMORY_ERR;
   }
 

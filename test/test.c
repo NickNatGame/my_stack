@@ -1,9 +1,10 @@
 #include "stack.h"
-#include <math.h>
+#include <math.h> // FIXME: unused header
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h> // FIXME: unused header
 #include <string.h>
 
+// FIXME: what if canary chanded? It's rad to maintain same constant in different files
 static const unsigned int CANARY = 0xDEADBEEF;
 static int fl_err = 0;
 #define SOFT_ASSERT_ERR(cond)                                                  \
@@ -141,3 +142,7 @@ int main(void) {
     return 1;
   }
 }
+
+//TODO: Consider using a GTest for that,
+// Also, you've never checked error-handling which is broken)
+//
