@@ -26,3 +26,6 @@ test_runner
 .vscode/
 .idea/
 .DS_Store
+
+#logging
+*.txt

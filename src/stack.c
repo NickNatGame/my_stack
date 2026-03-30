@@ -16,7 +16,46 @@ static const unsigned int CANARY = 0xDEADBEEF;
 static const int mult = 2;
 static void write_canaries(my_stack *stack);
 
-void stack_destroy(my_stack *stack) {
+static FILE *get_log_file(void)
+{
+  static FILE *log_file = NULL;
+  static int initialized = 0;
+
+  if (!initialized)
+  {
+    initialized = 1;
+
+    if (LOG_FILE_NAME != NULL)
+    {
+      log_file = fopen(LOG_FILE_NAME, "a");
+      if (log_file == NULL)
+      {
+        fprintf(stderr, "Failed to open log file '%s', using stderr\n",
+                LOG_FILE_NAME);
+        log_file = stderr;
+      }
+    }
+    else
+    {
+      log_file = stderr;
+    }
+  }
+
+  return log_file;
+}
+
+#define SOFT_ASSERT(cond, ret)                                            \
+  do                                                                      \
+  {                                                                       \
+    if (!(cond))                                                          \
+    {                                                                     \
+      fprintf(get_log_file(), "\nError: condition `%s` failed\n", #cond); \
+      return (ret);                                                       \
+    }                                                                     \
+  } while (0)
+
+void stack_destroy(my_stack *stack)
+{
   free(stack->block);
   stack->block = NULL;
   stack->pointer = NULL;
@@ -175,10 +214,18 @@ void dump(my_stack *stack) {
   stack_errs(stack);
 }
 
-#elif LOG_LEVEL_MIDDLE
-int dump(my_stack *stack) {
-  printf("Last element: stack[%d] %d\n", stack->count_idx,
-         stack->pointer[stack->count_idx]);
+#elif LOG_LEVEL_MEDIUM
+void dump(my_stack *stack)
+{
+  if (stack->size > 0)
+  {
+    printf("\nLast element: stack[%d] %d\n", stack->size - 1,
+           stack->pointer[stack->size - 1]);
+  }
+  else
+  {
+    printf("\nStack is empty\n");
+  }
 
   printf("All elements: \n");
   for (int i = stack->count_idx; i >= 0; i--) {
