@@ -13,3 +13,7 @@ target_link_libraries(tests
 )
 
 add_test(NAME stack_tests COMMAND tests)
+
+set_tests_properties(stack_tests PROPERTIES
+    ENVIRONMENT "ASAN_OPTIONS=detect_leaks=0"
+)

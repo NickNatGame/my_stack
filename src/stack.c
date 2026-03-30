@@ -34,7 +34,7 @@ static FILE *get_log_file(void)
   }
 
   return log_file;
-};
+}
 
 #define SOFT_ASSERT(cond, ret)                                            \
   do                                                                      \
@@ -256,7 +256,7 @@ void dump(my_stack *stack)
   stack_errs(stack);
 }
 
-#elif LOG_LEVEL_MIDDLE
+#elif LOG_LEVEL_MEDIUM
 void dump(my_stack *stack)
 {
   if (stack->size > 0)
