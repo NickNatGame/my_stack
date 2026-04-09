@@ -1,11 +1,5 @@
-#ifndef STACK_WORK_H // NOTE: nice, thx for header-protectors
+#ifndef STACK_WORK_H
 #define STACK_WORK_H
-
-// FIXME: Please, never do things like this, it's considered a bad practice
-// since: 1) you do that in header and force user of your library yo use UL name
-// for unsigned long and nothing else 2) you make it complicated redefining
-// things that already exists into short, non-readable names
-typedef unsigned long UL;
 
 typedef enum {
   STACK_OK = 0,
@@ -16,24 +10,35 @@ typedef enum {
   STACK_CORRUPTED = 1 << 4
 } stack_error;
 
+#ifndef LOG_FILE_NAME
+#define LOG_FILE_NAME NULL
+#endif
 typedef struct stack {
   void *block;
   int *pointer;
-  int count_idx;
-  int capasity;
-  UL hash;
+  int size;
+  int capacity;
+  unsigned long hash;
   stack_error error;
 } my_stack;
 
+#define SOFT_ASSERT_STACK(cond, err_code, stack)                               \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      stack->error |= (err_code);                                              \
+    }                                                                          \
+  } while (0)
+
+extern const unsigned int CANARY;
+
+unsigned long hash_create(my_stack *stack);
 void stack_initialize(my_stack *stack);
 void push(my_stack *stack, int num);
 void pop(my_stack *stack);
 void stack_resize(my_stack *arr);
-UL hash_create(
-    my_stack *stack); // TODO: Do user of you lib really needs this function?
-                      // Consider moving it into .c file as a static one
 void stack_errs(my_stack *stack);
 int check_canaries(my_stack *stack);
 void dump(my_stack *stack);
 void stack_destroy(my_stack *stack);
+
 #endif

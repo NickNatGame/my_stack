@@ -29,7 +29,6 @@ The project includes:
 
 - CMake 3.16.3 or newer
 - C compiler with C11 support
-
 ## Build
 
 Configure the project:

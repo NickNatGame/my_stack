@@ -1,12 +1,9 @@
 #include "stack.h"
-#include <math.h> // FIXME: unused header
 #include <stdio.h>
-#include <stdlib.h> // FIXME: unused header
 #include <string.h>
 
-// FIXME: what if canary chanded? It's rad to maintain same constant in different files
-static const unsigned int CANARY = 0xDEADBEEF;
 static int fl_err = 0;
+
 #define SOFT_ASSERT_ERR(cond)                                                  \
   do {                                                                         \
     if (!(cond)) {                                                             \
@@ -32,8 +29,8 @@ static int stack_check_init() {
   SOFT_ASSERT_ERR(stack.block != NULL);     /*  |                         */
   SOFT_ASSERT_ERR(stack.pointer != NULL);   /*  |                         */
   SOFT_ASSERT_ERR(stack.error == STACK_OK); /*  |    init values check    */
-  SOFT_ASSERT_EQ_ERR(stack.capasity, 1);    /*  |                         */
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, -1);  /*  |                         */
+  SOFT_ASSERT_EQ_ERR(stack.capacity, 1);    /*  |                         */
+  SOFT_ASSERT_EQ_ERR(stack.size, 0);        /*  |                         */
 
   SOFT_ASSERT_ERR((char *)stack.pointer ==
                   (char *)stack.block + (int)sizeof(CANARY)); /* |                                      */
@@ -50,13 +47,13 @@ static int test_push_pop(void) {
   stack_initialize(&stack);
 
   push(&stack, 10);                                     /* |                      */
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, 0);               /* |                      */
+  SOFT_ASSERT_EQ_ERR(stack.size, 1);               /* |                      */
   SOFT_ASSERT_EQ_ERR(stack.pointer[0], 10);             /* |   check push basic   */
   SOFT_ASSERT_ERR(stack.hash == hash_create(&stack));   /* |                      */
   SOFT_ASSERT_ERR(check_canaries(&stack) == 1);         /* |                      */
 
   pop(&stack);                                          /* |                    */
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, -1);              /* |                    */
+  SOFT_ASSERT_EQ_ERR(stack.size, 0);              /* |                    */
   SOFT_ASSERT_ERR((stack.error & STACK_UNDERFLOW) ==    /* |                    */
                   0);                                   /* |   check pop basic  */
   SOFT_ASSERT_ERR(stack.hash == hash_create(&stack));   /* |                    */
@@ -71,13 +68,13 @@ static int test_resize(void) {
   stack_initialize(&stack);
 
   push(&stack, 123);
-  SOFT_ASSERT_EQ_ERR(stack.capasity, 1);
+  SOFT_ASSERT_EQ_ERR(stack.capacity, 1);
   SOFT_ASSERT_EQ_ERR(stack.pointer[0], 123);
 
   /* resize: 1 -> 2 */
   push(&stack, 228);
-  SOFT_ASSERT_EQ_ERR(stack.capasity, 2);
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, 1);
+  SOFT_ASSERT_EQ_ERR(stack.capacity, 2);
+  SOFT_ASSERT_EQ_ERR(stack.size, 2);
   SOFT_ASSERT_EQ_ERR(stack.pointer[0], 123);
   SOFT_ASSERT_EQ_ERR(stack.pointer[1], 228);
   SOFT_ASSERT_ERR(stack.hash == hash_create(&stack));
@@ -85,8 +82,8 @@ static int test_resize(void) {
 
   /* resize: 2 -> 4 */
   push(&stack, 999);
-  SOFT_ASSERT_EQ_ERR(stack.capasity, 4);
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, 2);
+  SOFT_ASSERT_EQ_ERR(stack.capacity, 4);
+  SOFT_ASSERT_EQ_ERR(stack.size, 3);
   SOFT_ASSERT_EQ_ERR(stack.pointer[0], 123);
   SOFT_ASSERT_EQ_ERR(stack.pointer[1], 228);
   SOFT_ASSERT_EQ_ERR(stack.pointer[2], 999);
@@ -97,7 +94,7 @@ static int test_resize(void) {
   return 0;
 }
 
-static void test_many_pushes_and_pops(void) {
+static int test_many_pushes_and_pops(void) {
   my_stack stack;
   stack_initialize(&stack);
 
@@ -109,8 +106,8 @@ static void test_many_pushes_and_pops(void) {
     push(&stack, i);
   }
 
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, N - 1);
-  SOFT_ASSERT_EQ_ERR(stack.capasity, capas_real);
+  SOFT_ASSERT_EQ_ERR(stack.size, N);
+  SOFT_ASSERT_EQ_ERR(stack.capacity, capas_real);
 
   SOFT_ASSERT_EQ_ERR(stack.pointer[0], 0);      /* |                 */
   SOFT_ASSERT_EQ_ERR(stack.pointer[50], 50);    /* | can be changed  */
@@ -121,11 +118,12 @@ static void test_many_pushes_and_pops(void) {
 
   for (int i = 0; i < 10; i++)
     pop(&stack);
-  SOFT_ASSERT_EQ_ERR(stack.count_idx, N - 11);
+  SOFT_ASSERT_EQ_ERR(stack.size, N - 10);
   SOFT_ASSERT_ERR(stack.hash == hash_create(&stack));
   SOFT_ASSERT_ERR(check_canaries(&stack) == 1);
 
   stack_destroy(&stack);
+  return 0;
 }
 
 int main(void) {
@@ -142,7 +140,3 @@ int main(void) {
     return 1;
   }
 }
-
-//TODO: Consider using a GTest for that,
-// Also, you've never checked error-handling which is broken)
-//
