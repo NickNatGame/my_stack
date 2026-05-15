@@ -16,6 +16,7 @@ compile_commands.json
 *.dylib
 *.dll
 *.cmake
+*.txt
 
 # Executables
 *.exe

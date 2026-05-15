@@ -1,56 +1,67 @@
-#include "stack.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <stddef.h>
+
+#include "stack.h"
 
 const unsigned int CANARY = 0xDEADBEEF;
 static const int mult = 2;
+static const uintptr_t poisoned = 0xDEADBEEF;
+static FILE *LOG_FILE = NULL;
 static void write_canaries(my_stack *stack);
+static void close_log_file(void);
 
-static FILE *get_log_file(void)
+static FILE *get_LOG_FILE(void)
 {
-  static FILE *log_file = NULL;
-  static int initialized = 0;
+  const char *log_file_name = (const char *)LOG_FILE_NAME;
 
-  if (!initialized)
+  if (LOG_FILE != NULL)
   {
-    initialized = 1;
-
-    if (LOG_FILE_NAME != NULL)
-    {
-      log_file = fopen(LOG_FILE_NAME, "a");
-      if (log_file == NULL)
-      {
-        fprintf(stderr, "Failed to open log file '%s', using stderr\n",
-                LOG_FILE_NAME);
-        log_file = stderr;
-      }
-    }
-    else
-    {
-      log_file = stderr;
-    }
+    return LOG_FILE;
   }
 
-  return log_file;
+  if (log_file_name != NULL)
+  {
+    LOG_FILE = fopen(log_file_name, "a");
+    if (LOG_FILE != NULL)
+    {
+      return LOG_FILE;
+    }
+
+    fprintf(stderr, "Failed to open log file '%s', using stderr\n",
+            log_file_name);
+  }
+
+  LOG_FILE = stderr;
+
+  return LOG_FILE;
 }
 
-#define SOFT_ASSERT(cond, ret)                                            \
-  do                                                                      \
-  {                                                                       \
-    if (!(cond))                                                          \
-    {                                                                     \
-      fprintf(get_log_file(), "\nError: condition `%s` failed\n", #cond); \
-      return (ret);                                                       \
-    }                                                                     \
-  } while (0)
+static void close_log_file(void)
+{
+  if (LOG_FILE != NULL && LOG_FILE != stderr)
+  {
+    fclose(LOG_FILE);
+  }
+
+  LOG_FILE = NULL;
+}
 
 void stack_destroy(my_stack *stack)
 {
+  SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return;
+  }
+
   free(stack->block);
-  stack->block = NULL;
-  stack->pointer = NULL;
+  stack->block = (void *)poisoned;
+  stack->pointer = (int *)poisoned;
+
+  close_log_file();
 }
 
 static void
@@ -113,13 +124,12 @@ void stack_resize(my_stack *stack)
   {
     new_capacity *= mult;
   }
-  else if (stack->size <= stack->capacity / mult && stack->capacity > 1)
+  else if (stack->size * mult * mult <
+               stack->capacity &&
+           stack->capacity > 1)
   {
     new_capacity /= mult;
-    if (new_capacity < 1)
-    {
-      new_capacity = 1;
-    }
+    new_capacity = new_capacity < 1 ? 1 : new_capacity;
   }
   else
   {
@@ -166,7 +176,8 @@ void pop(my_stack *stack)
     stack->size -= 1;
   }
 
-  if (stack->size <= stack->capacity / mult && stack->capacity > 1)
+  if (stack->size * mult * mult < stack->capacity &&
+      stack->capacity > 1)
   {
     stack_resize(stack);
   }
@@ -192,35 +203,25 @@ unsigned long hash_create(my_stack *stack)
 
 void stack_errs(my_stack *stack)
 {
-  FILE *out = get_log_file();
+  FILE *out = get_LOG_FILE();
 
   if (stack->error == STACK_OK)
   {
-    printf("No errors occurred\n");
+    fprintf(out, "No errors occurred\n");
     return;
   }
 
+#define PRINT_STACK_ERROR(code, message)                                      \
+  if (stack->error & (code))                                                  \
+  {                                                                           \
+    fprintf(out, "%s", message);                                              \
+  }
+
   fprintf(out, "All stack errors:\n");
-  if (stack->error & STACK_NULL_PTR)
-  {
-    fprintf(out, "Null pointer at stack\n");
-  }
-  if (stack->error & STACK_MEMORY_ERR)
-  {
-    fprintf(out, "Stack allocation err\n");
-  }
-  if (stack->error & STACK_OVERFLOW)
-  {
-    fprintf(out, "Stack overflow - max capacity\n");
-  }
-  if (stack->error & STACK_UNDERFLOW)
-  {
-    fprintf(out, "Stack underflow - pop from empty stack\n");
-  }
-  if (stack->error & STACK_CORRUPTED)
-  {
-    fprintf(out, "Smth wrong with your stack...\n");
-  }
+#define def_error(CODE, STR) PRINT_STACK_ERROR(CODE, STR)
+#include "error.def"
+#undef def_error
+#undef PRINT_STACK_ERROR
 
   stack->error = STACK_OK;
 }
