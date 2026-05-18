@@ -126,10 +126,10 @@ cmake -S . -B build -DBUILD_TESTING=OFF
 
 ## Example Configurations
 
-Release build with full logging and a custom log file:
+Debug build with full logging and a custom log file:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLOG_LEVEL=FULL -DLOG_FILE_NAME=main.txt
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DLOG_LEVEL=FULL -DLOG_FILE_NAME=main.txt
 cmake --build build
 ```
 

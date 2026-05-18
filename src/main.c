@@ -20,7 +20,12 @@ int main(void)
     printf("Choose:\n push: [%d]\n pop: [%d]\n exit: [%d]\n",
            STACK_COMMAND_PUSH, STACK_COMMAND_POP, STACK_COMMAND_EXIT);
 
-    if (scanf("%d", &choice) != 1)
+    int input_status = scanf("%d", &choice);
+    if (input_status == EOF)
+    {
+      break;
+    }
+    if (input_status != 1)
     {
       printf("Incorrect input\n");
       int c = 0;

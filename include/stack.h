@@ -3,11 +3,11 @@
 
 #include <stddef.h>
 
-#define def_error(CODE, STR) CODE,
+#define DEF_ERROR(CODE, VALUE, STR) CODE = VALUE,
 typedef enum {
   #include "error.def"
 } stack_error;
-#undef def_error
+#undef DEF_ERROR
 
 #ifndef LOG_FILE_NAME
 #define LOG_FILE_NAME NULL

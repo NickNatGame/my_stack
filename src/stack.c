@@ -13,7 +13,7 @@ static FILE *LOG_FILE = NULL;
 static void write_canaries(my_stack *stack);
 static void close_log_file(void);
 
-static FILE *get_LOG_FILE(void)
+static FILE *get_log_file(void)
 {
   const char *log_file_name = (const char *)LOG_FILE_NAME;
 
@@ -24,7 +24,7 @@ static FILE *get_LOG_FILE(void)
 
   if (log_file_name != NULL)
   {
-    LOG_FILE = fopen(log_file_name, "a");
+    LOG_FILE = fopen(log_file_name, "w");
     if (LOG_FILE != NULL)
     {
       return LOG_FILE;
@@ -68,7 +68,16 @@ static void
 write_canaries(my_stack *stack)
 {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return;
+  }
+
   SOFT_ASSERT_STACK(stack->block != NULL, STACK_NULL_PTR, stack);
+  if (stack->block == NULL)
+  {
+    return;
+  }
 
   memcpy((char *)stack->block, &CANARY, sizeof(CANARY));
 
@@ -79,7 +88,16 @@ write_canaries(my_stack *stack)
 int check_canaries(my_stack *stack)
 {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return 0;
+  }
+
   SOFT_ASSERT_STACK(stack->block != NULL, STACK_NULL_PTR, stack);
+  if (stack->block == NULL)
+  {
+    return 0;
+  }
 
   const unsigned int *left_can_ptr = (const unsigned int *)stack->block;
   const unsigned int *right_can_ptr =
@@ -92,9 +110,15 @@ int check_canaries(my_stack *stack)
 void stack_initialize(my_stack *stack)
 {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return;
+  }
 
   int total_bytes = 0;
   void *n_block = NULL;
+  stack->block = NULL;
+  stack->pointer = NULL;
   stack->capacity = 1;
   stack->error = STACK_OK;
   stack->size = 0;
@@ -102,6 +126,10 @@ void stack_initialize(my_stack *stack)
   total_bytes = sizeof(CANARY) + stack->capacity * sizeof(int) + sizeof(CANARY);
   n_block = calloc(1, total_bytes);
   SOFT_ASSERT_STACK(n_block != NULL, STACK_MEMORY_ERR, stack);
+  if (n_block == NULL)
+  {
+    return;
+  }
 
   stack->block = n_block;
   stack->pointer = (int *)((char *)n_block + sizeof(CANARY));
@@ -113,7 +141,16 @@ void stack_initialize(my_stack *stack)
 void stack_resize(my_stack *stack)
 {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return;
+  }
+
   SOFT_ASSERT_STACK(stack->block != NULL, STACK_NULL_PTR, stack);
+  if (stack->block == NULL)
+  {
+    return;
+  }
 
   int new_capacity = 0;
   int new_total_bytes = 0;
@@ -141,6 +178,10 @@ void stack_resize(my_stack *stack)
 
   new_n_block = realloc(stack->block, new_total_bytes);
   SOFT_ASSERT_STACK(new_n_block != NULL, STACK_MEMORY_ERR, stack);
+  if (new_n_block == NULL)
+  {
+    return;
+  }
 
   stack->block = new_n_block;
   stack->capacity = new_capacity;
@@ -152,12 +193,25 @@ void stack_resize(my_stack *stack)
 void push(my_stack *stack, int num)
 {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return;
+  }
+
+  SOFT_ASSERT_STACK(stack->block != NULL, STACK_NULL_PTR, stack);
+  if (stack->block == NULL)
+  {
+    return;
+  }
 
   if (stack->size >= stack->capacity)
   {
     stack_resize(stack);
 
-    SOFT_ASSERT_STACK(stack->error != STACK_OK ? 0 : 1, STACK_CORRUPTED, stack);
+    if (stack->size >= stack->capacity)
+    {
+      return;
+    }
   }
   stack->pointer[stack->size] = num;
   stack->size += 1;
@@ -169,7 +223,22 @@ void push(my_stack *stack, int num)
 void pop(my_stack *stack)
 {
   SOFT_ASSERT_STACK(stack != NULL, STACK_NULL_PTR, stack);
+  if (stack == NULL)
+  {
+    return;
+  }
+
+  SOFT_ASSERT_STACK(stack->block != NULL, STACK_NULL_PTR, stack);
+  if (stack->block == NULL)
+  {
+    return;
+  }
+
   SOFT_ASSERT_STACK(stack->size > 0, STACK_UNDERFLOW, stack);
+  if (stack->size <= 0)
+  {
+    return;
+  }
 
   if (stack->size > 0)
   {
@@ -188,6 +257,11 @@ void pop(my_stack *stack)
 
 unsigned long hash_create(my_stack *stack)
 {
+  if (stack == NULL || stack->pointer == NULL)
+  {
+    return 0;
+  }
+
   unsigned long hash = 0x16032007;
   const unsigned long hash_prime = 0x01000193;
   for (int elem = 0; elem < stack->size; elem++)
@@ -203,26 +277,34 @@ unsigned long hash_create(my_stack *stack)
 
 void stack_errs(my_stack *stack)
 {
-  FILE *out = get_LOG_FILE();
+  FILE *out = get_log_file();
 
-  if (stack->error == STACK_OK)
+  if (stack == NULL)
   {
-    fprintf(out, "No errors occurred\n");
+    fprintf(out, "%s", "Null pointer at stack\n");
+    fflush(out);
     return;
   }
 
-#define PRINT_STACK_ERROR(code, message)                                      \
-  if (stack->error & (code))                                                  \
-  {                                                                           \
-    fprintf(out, "%s", message);                                              \
+  if (stack->error == STACK_OK)
+  {
+    fprintf(out, "%s", "No errors occurred\n");
+    fflush(out);
+    return;
+  }
+
+#define PRINT_STACK_ERROR(VALUE, STR)                                           \
+  if (stack->error & (VALUE))                                                   \
+  {                                                                             \
+    fprintf(out, "%s", STR);                                                    \
   }
 
   fprintf(out, "All stack errors:\n");
-#define def_error(CODE, STR) PRINT_STACK_ERROR(CODE, STR)
+#define DEF_ERROR(CODE, VALUE, STR) PRINT_STACK_ERROR(VALUE, STR)
 #include "error.def"
-#undef def_error
+#undef DEF_ERROR
 #undef PRINT_STACK_ERROR
-
+  fflush(out);
   stack->error = STACK_OK;
 }
 
