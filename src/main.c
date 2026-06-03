@@ -2,6 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+enum stack_command {
+  STACK_COMMAND_PUSH = 1,
+  STACK_COMMAND_POP = 2,
+  STACK_COMMAND_EXIT = 3
+};
+
 int main(void)
 {
   int choice = 0;
@@ -9,11 +15,17 @@ int main(void)
   my_stack stack;
   stack_initialize(&stack);
 
-  while (choice != 3)
+  while (choice != STACK_COMMAND_EXIT)
   {
-    printf("Choose:\n push: [1]\n pop: [2]\n exit: [3]\n");
+    printf("Choose:\n push: [%d]\n pop: [%d]\n exit: [%d]\n",
+           STACK_COMMAND_PUSH, STACK_COMMAND_POP, STACK_COMMAND_EXIT);
 
-    if (scanf("%d", &choice) != 1)
+    int input_status = scanf("%d", &choice);
+    if (input_status == EOF)
+    {
+      break;
+    }
+    if (input_status != 1)
     {
       printf("Incorrect input\n");
       int c = 0;
@@ -23,7 +35,7 @@ int main(void)
       continue;
     }
 
-    if (choice == 1)
+    if (choice == STACK_COMMAND_PUSH)
     {
       printf("Write number: ");
       if (scanf("%d", &num) != 1)
@@ -37,11 +49,11 @@ int main(void)
       }
       push(&stack, num);
     }
-    else if (choice == 2)
+    else if (choice == STACK_COMMAND_POP)
     {
       pop(&stack);
     }
-    else if (choice == 3)
+    else if (choice == STACK_COMMAND_EXIT)
     {
       break;
     }

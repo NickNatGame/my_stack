@@ -1,0 +1,6 @@
+DEF_ERROR(STACK_OK, 0, "No errors occurred\n")
+DEF_ERROR(STACK_NULL_PTR, 1 << 0, "Null pointer at stack\n")
+DEF_ERROR(STACK_MEMORY_ERR, 1 << 1, "Stack allocation err\n")
+DEF_ERROR(STACK_OVERFLOW, 1 << 2, "Stack overflow - max capacity\n")
+DEF_ERROR(STACK_UNDERFLOW, 1 << 3, "Stack underflow - pop from empty stack\n")
+DEF_ERROR(STACK_CORRUPTED, 1 << 4, "Smth wrong with your stack...\n")

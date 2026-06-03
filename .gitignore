@@ -16,6 +16,7 @@ compile_commands.json
 *.dylib
 *.dll
 *.cmake
+*.txt
 
 # Executables
 *.exe
@@ -27,3 +28,6 @@ test_runner
 .vscode/
 .idea/
 .DS_Store
+
+#logging
+*.txt

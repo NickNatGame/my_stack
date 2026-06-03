@@ -29,7 +29,6 @@ The project includes:
 
 - CMake 3.16.3 or newer
 - C compiler with C11 support
-
 ## Build
 
 Configure the project:
@@ -127,10 +126,10 @@ cmake -S . -B build -DBUILD_TESTING=OFF
 
 ## Example Configurations
 
-Release build with medium logging and a custom log file:
+Debug build with full logging and a custom log file:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLOG_LEVEL=MEDIUM -DLOG_FILE_NAME=main.txt
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DLOG_LEVEL=FULL -DLOG_FILE_NAME=main.txt
 cmake --build build
 ```
 
